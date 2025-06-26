@@ -40,9 +40,10 @@ async def run_pipeline(
         }
 
         result = interview_graph.invoke(state)
-        return JSONResponse(content=result["resume_analysis"])
+        return JSONResponse(content=result["behavioral_questions"])
 
     except Exception as e:
+        print("❌ Error during pipeline execution:", e)
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": f"Server error: {str(e)}"}

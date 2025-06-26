@@ -11,12 +11,14 @@ class ResumeScore(BaseModel):
     feedback: List[str]
 
 
-class GraphState(TypedDict):
-    resume_text: str
-    job_description: str
-    file_path: str
-    resume_analysis: dict[bool, Any
-                          ]
+class BehavioralQuestion(BaseModel):
+    question: str
+    answer: str
+    source: str
+
+
+class BehavioralQuestionsResponse(BaseModel):
+    questions: List[BehavioralQuestion]
 
 
 def success_response(data: Any) -> dict:
@@ -25,3 +27,12 @@ def success_response(data: Any) -> dict:
 
 def error_response(message: str) -> dict:
     return {"success": False, "message": message}
+
+
+class GraphState(TypedDict):
+    resume_text: str
+    job_description: str
+    file_path: str
+    resume_analysis: dict[bool, Any
+                          ]
+    behavioral_questions: dict[bool, Any] | None
