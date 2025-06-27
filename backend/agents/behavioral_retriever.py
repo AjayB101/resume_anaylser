@@ -37,47 +37,6 @@ class BehaviourRetriver:
             print("❌ Search prompt error:", e)
             raise RuntimeError(e)
 
-    # def search_res_links(self, job_description: str) -> list[str]:
-    #     try:
-    #         # Step 1: Generate search query
-    #         search_query = self.search_query_generator(job_description)
-
-    #         # Step 2: Use FireCrawl to perform the search
-    #         fire_crawl = self.fire_crawl
-    #         res = fire_crawl.search(search_query)
-
-    #         # Step 3: Handle both object-style and dict-style responses
-    #         if not res or not (hasattr(res, "data") or (isinstance(res, dict) and "data" in res)):
-    #             raise ValueError("Invalid response from FireCrawl search")
-
-    #         if hasattr(res, "data"):
-    #             results = getattr(res, "data", [])
-    #         elif isinstance(res, dict):
-    #             results = res.get("data", [])
-    #         else:
-    #             results = []
-
-    #         if not isinstance(results, list) or not results:
-    #             raise ValueError("No search results found.")
-
-    #         # ✅ Step 4: Extract valid links
-    #         links = []
-    #         for item in results:
-    #             # Support both object and dict formats
-    #             url = getattr(item, "url", None) if not isinstance(
-    #                 item, dict) else item.get("url")
-    #             if url and isinstance(url, str):
-    #                 links.append(url)
-
-    #         if not links:
-    #             raise ValueError("No valid URLs found in search results.")
-
-    #         return links
-
-    #     except Exception as e:
-    #         print("❌ Search error:", e)
-    #         raise RuntimeError(f"Search failed: {str(e)}")
-
     def get_q_and_a(self, job_description: str) -> dict:
         try:
             # Step 1: Generate search query

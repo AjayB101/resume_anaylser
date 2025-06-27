@@ -41,11 +41,9 @@ def extract_resume(directory: str) -> str:
         "No valid resume file (.pdf or .docx) found in the directory.")
 
 
-def resume_analyse(file_path: str, job_description: str):
+def resume_analyse(resume_txt: str, job_description: str):
     try:
-        extracted_resume_txt = extract_resume(file_path)
-        if not extracted_resume_txt:
-            return error_response(str("No content is present in pdf"))
+
         parser = PydanticOutputParser(pydantic_object=ResumeScore)
         prompt = PromptTemplate(
             template=ToolPrompts.resume_analyzer_prompt,
@@ -55,7 +53,7 @@ def resume_analyse(file_path: str, job_description: str):
 
         chain = prompt | llm | parser
         res = chain.invoke({
-            "resume_text": extracted_resume_txt,
+            "resume_text": resume_txt,
             "job_description": job_description
         })
         return success_response(res.dict())

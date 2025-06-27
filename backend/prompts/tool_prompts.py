@@ -43,12 +43,27 @@ Example inputs and outputs:
 Search Query:"""
 
     behavioural_q_and_a_prompt = """
-    Extract 5 behavioral interview questions and sample answers from the following content.
+    Extract 2 behavioral interview questions and sample answers from the following content.
     I want the response in the following format:
-    
+
     {format_instructions}
 
     Query:
     {query}
     no preamble or Explaination
     """
+    mock_interview_prompt = """
+You are an expert interview evaluator.
+
+Given the candidate's resume and their behavioral answers, evaluate their performance.
+
+Resume:
+{resume_text}
+
+Candidate Answers:
+{answers}
+
+Provide a JSON response based on the below instructions :
+{format_instructions}
+no preamble or Explaination
+"""
