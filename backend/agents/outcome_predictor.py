@@ -3,7 +3,7 @@ from langchain.chains import LLMChain
 from prompts.tool_prompts import ToolPrompts
 from llm import llm  # Your Gemini or Groq LLM
 from langchain.output_parsers import PydanticOutputParser
-from models.models import OutcomeModel
+from models.models import OutcomeModel, error_response, success_response
 
 parser = PydanticOutputParser(
     pydantic_object=OutcomeModel,
@@ -47,12 +47,13 @@ def predict_outcome(resume_scores: dict, mock_scores: dict) -> dict:
         prediction_justification = predictor_chain.run(inputs)
         pred_dict = prediction_justification.dict()
 
-        return {
-            "success": True,
+        res = {
+
             "score": pred_dict["score"],
             "justification": pred_dict["feedback"],
         }
+        return success_response(res)
 
     except Exception as e:
         print("❌ Error in outcome prediction:", e)
-        return {"success": False, "message": str(e)}
+        return error_response(str(e))

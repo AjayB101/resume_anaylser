@@ -16,6 +16,18 @@ class ToolPrompts:
 
     instructions on how the output would be
     {format_instructions}
+    
+    Your response must be in the following JSON format:
+
+{{
+  "clarity": int,                     // Clarity score from 0 to 100
+  "relevance": int,                  // Relevance to job description
+  "structure": int,                  // Resume formatting quality
+  "experience": int,                 // Years of relevant experience
+  "feedback": [str, str, ...]        // List of 2–3 short improvement tips
+}}
+ONLY return the above JSON object with correct keys and values. Do not include anything else.
+
     """
     serach_query_prompt = """
 You are an expert at creating search queries for finding relevant behavioral interview questions.
@@ -104,7 +116,7 @@ Based on the candidate's scores and feedback from their resume analysis and mock
 
 
 
-The response should be strictly  in the following format 
+The response should be strictly  in the following format
 {format_instructions}
 
 example output format:
@@ -117,4 +129,47 @@ example output format:
 Predict the candidate's overall outcome and provide a justification for your prediction.
 Your justification should be consolidated from the resume and mock interview scores and feedback and it should tell which area or skill lagging.
 No preamble or explaination.
+"""
+    gap_fixer_single_prompt_template_string = """
+You are an expert career coach and a professional "Gap Fixer" agent. Your task is to analyze a candidate's resume strengths, mock interview evaluation scores, and overall success likelihood to identify key areas for improvement.
+
+Based on these insights, you will generate a personalized, human-readable improvement plan. Crucially, for each actionable step in the plan, you must also provide a list of precise web search queries that the candidate can use to find relevant learning resources and guidance online.
+
+**Input Analysis Instructions:**
+- **Resume Strength JSON:** Focus on specific areas like keyword matching, use of metrics, action verbs, and overall impact.
+- **Evaluation Scores JSON:** Analyze scores for tone, confidence, and relevance, and derive insights from the specific feedback provided.
+- **Success Likelihood JSON:** Understand the overall prediction and the high-level reasons for it.
+
+**Candidate's Resume Strength Analysis:**
+{resume_strength_json}
+
+**Mock Interview Evaluation Scores:**
+{evaluation_scores_json}
+
+**Success Likelihood Prediction:**
+{success_likelihood_json}
+
+The output should be strictly based on the format instructions below. Do not include any explanation, commentary, or extra text—only return the final JSON object.
+
+{format_instructions}
+
+Output Format Example:
+{{
+  "overall_summary": "The candidate has a solid foundation but needs to enhance their resume with quantifiable achievements and improve interview confidence.",
+  "actionable_steps": [
+    {{
+      "description": "Quantify achievements on resume bullet points to demonstrate impact.",
+      "search_query": "quantify resume achievements"
+    }},
+    {{
+      "description": "Practice interview questions using the STAR method.",
+      "search_query": "STAR method interview examples"
+    }},
+    {{
+      "description": "Improve technical communication by explaining projects clearly.",
+      "search_query": "how to explain technical projects in interviews"
+    }}
+  ]
+}}
+
 """

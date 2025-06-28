@@ -135,31 +135,48 @@ async def submit_mock_answers(
             "job_description": session_data["job_description"],
             "resume_analysis": session_data["resume_analysis"],
             "behavioral_questions": session_data["behavioral_questions"],
-            "success_prediction": {},
         }
 
         # Use the mock evaluation graph
         result = mock_evaluation_graph.invoke(state)
+        resume_analysis = result.get("resume_analysis", {})
         mock_response = result.get("mock_response", {})
+        success_prediction = result.get("success_prediction", {})
+        gap_fixer = result.get("gap_fixer", {})
 
-        # Clean up session after successful evaluation
+        # Clean up session
         temp_dir = session_store[session_id]["file_path"]
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
         del session_store[session_id]
 
-        # Return the evaluation results
-        if mock_response.get("success"):
+        # Determine if all agents succeeded (optional stricter check)
+        if all([
+            resume_analysis.get("success"),
+            mock_response.get("success"),
+            success_prediction.get("success"),
+            gap_fixer.get("success")
+        ]):
             return JSONResponse(content={
                 "success": True,
-                "feedback": mock_response.get("data", {})
+                "data": {
+                    "resume_analysis": resume_analysis.get("data", {}),
+                    "mock_response": mock_response.get("data", {}),
+                    "success_prediction": success_prediction.get("data", {}),
+                    "gap_fixer": gap_fixer.get("data", {})
+                }
             })
         else:
             return JSONResponse(content={
                 "success": False,
-                "message": mock_response.get("message", "Mock evaluation failed")
+                "message": "One or more agents failed",
+                "errors": {
+                    "resume_analysis": resume_analysis.get("message"),
+                    "mock_response": mock_response.get("message"),
+                    "success_prediction": success_prediction.get("message"),
+                    "gap_fixer": gap_fixer.get("message"),
+                }
             })
-
     except HTTPException:
         raise
     except Exception as e:
