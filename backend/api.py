@@ -60,7 +60,8 @@ async def run_pipeline(
             "resume_analysis": result.get("resume_analysis"),
             # This is now extracted in the orchestrator
             "resume_text": result.get("resume_text", ""),
-            "behavioral_questions": result.get("behavioral_questions")
+            "behavioral_questions": result.get("behavioral_questions"),
+
         }
 
         # Return questions with session ID
@@ -133,7 +134,8 @@ async def submit_mock_answers(
 
             "job_description": session_data["job_description"],
             "resume_analysis": session_data["resume_analysis"],
-            "behavioral_questions": session_data["behavioral_questions"]
+            "behavioral_questions": session_data["behavioral_questions"],
+            "success_prediction": {},
         }
 
         # Use the mock evaluation graph

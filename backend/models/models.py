@@ -35,9 +35,10 @@ class GraphState(TypedDict):
     file_path: str
     resume_analysis: dict[bool, Any
                           ]
-    behavioral_questions: dict[bool, Any] | None
+    behavioral_questions: dict[bool, Any]
     answers: list[dict[str, Any]]
-    mock_response: dict[bool, Any] | None
+    mock_response: dict[bool, Any]
+    success_prediction: dict[bool, Any]
     stage: str
 
 
@@ -51,6 +52,13 @@ class MockInterviewFeedback(BaseModel):
                              description="Average score based on confidence,relevance,tone score out of 100")
     feedback: List[str] = Field(...,
                                 description="List of 2-3 actionable feedback tips")
+
+
+class OutcomeModel(BaseModel):
+    score: float = Field(..., ge=0, le=100,
+                         description="Overall score based on resume and mock interview")
+    feedback: str = Field(...,
+                          description="actionable feedback tips in one line")
 
 
 class QAPair(BaseModel):

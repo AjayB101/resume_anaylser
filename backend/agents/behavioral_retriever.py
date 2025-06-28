@@ -1,6 +1,6 @@
 # Behavioral Retriever module
 from itertools import chain
-from database.db import save_questions_if_new
+from database.db import get_cached_questions_by_query, save_questions_if_new
 from models.models import BehavioralQuestionsResponse, error_response, success_response
 from fire_crawl_services import FireCrawlService
 from prompts.tool_prompts import ToolPrompts
@@ -27,10 +27,12 @@ class BehaviourRetriver:
                 query_text = serch_query_res.content
             else:
                 query_text = str(serch_query_res)
+
             if not isinstance(query_text, str) or query_text.strip() == "":
                 raise ValueError(
                     "Search query generation failed or returned empty.")
-
+            if query_text.startswith('"') and query_text.endswith('"'):
+                query_text = query_text[1:-1]
             return query_text.strip()
 
         except Exception as e:
@@ -41,7 +43,13 @@ class BehaviourRetriver:
         try:
             # Step 1: Generate search query
             search_query = self.search_query_generator(job_description)
+            cached_questions = get_cached_questions_by_query(search_query)
 
+            if cached_questions:
+                print("✅ Found cached questions for this query, skipping LLM call")
+                return success_response(cached_questions)
+
+            print("🤖 No cached questions found, proceeding with LLM call")
             # Step 2: Set up parser and prompt
             parser = PydanticOutputParser(
                 pydantic_object=BehavioralQuestionsResponse)
