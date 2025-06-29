@@ -26,6 +26,7 @@ class BehavioralQuestion(BaseModel):
     question: str
     answer: str
     source: str
+    category: Optional[str] = None   # <-- new field
 
 
 class BehavioralQuestionsResponse(BaseModel):

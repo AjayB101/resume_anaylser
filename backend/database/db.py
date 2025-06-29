@@ -4,256 +4,175 @@ from typing import Any, List, Optional
 from chromadb import PersistentClient
 from chromadb.config import Settings
 
-# Setup ChromaDB client and collections
+# Setup ChromaDB client and collection
 client = PersistentClient(
-    path="my_chroma_db", settings=Settings(allow_reset=True))
+    path="my_chroma_db",
+    settings=Settings(allow_reset=True)
+)
 
-# Existing collection for individual questions
-collection = client.get_or_create_collection("behavioral_qna")
-
-# New collection for caching search queries with their questions
-query_cache_collection = client.get_or_create_collection("query_cache")
+# Collection for behavioral interview Q&A
+behavioral_qna_collection = client.get_or_create_collection("behavioral_qna")
 
 
-def add_question_if_missing(question: str, sample_answer: str, source: str) -> bool:
+def save_qna_for_category(questions: List[dict], min_count: int = 2) -> None:
     """
-    Add question to ChromaDB only if it doesn't already exist.
-    Returns True if added, False if already existed.
+    Save behavioral interview Q&A to ChromaDB if category doesn't have enough items.
+
+    Args:
+        questions: List of dicts with keys: question, answer, source, category
+        min_count: Minimum number of items that should exist in category before skipping
+
+    Returns:
+        None
     """
-    try:
-        result = collection.query(query_texts=[question], n_results=5)
-        documents = result.get("documents")
+    if not questions:
+        print("📝 No questions to save")
+        return
 
-        if not documents or not isinstance(documents, list) or not documents[0]:
-            existing_questions = []
-        else:
-            existing_questions = documents[0]
-
-        if any(q.strip().lower() == question.strip().lower() for q in existing_questions):
-            print("✅ Question already exists. Skipping.")
-            return False
-
-        # Add new question with metadata
-        collection.add(
-            documents=[question],
-            metadatas=[{
-                "sample_answer": sample_answer,
-                "source": source
-            }],
-            ids=[str(uuid.uuid4())]
-        )
-        print("✅ New question added to ChromaDB.")
-        return True
-
-    except Exception as e:
-        print(f"❌ Error adding question: {e}")
-        return False
-
-
-def save_questions_if_new(questions: List[dict]):
-    """Save individual questions to the main collection"""
+    # Group questions by category to check counts efficiently
+    questions_by_category = {}
     for item in questions:
-        question = item.get("question")
-        answer = item.get("answer")  # note: 'answer' key from your response
-        source = item.get("source")
+        category = item.get("category")
+        if category:
+            if category not in questions_by_category:
+                questions_by_category[category] = []
+            questions_by_category[category].append(item)
 
-        if question and answer and source:
-            try:
-                existing = collection.query(
-                    query_texts=[question], n_results=3)
-                documents = existing.get("documents") or [[]]
+    for category, category_questions in questions_by_category.items():
+        try:
+            # Check existing count for this category
+            existing_result = behavioral_qna_collection.query(
+                query_texts=[category],
+                n_results=1000,  # Get all items to count accurately
+                where={"category": category}
+            )
 
-                found = documents[0] if documents and isinstance(
-                    documents, list) and documents[0] else []
+            existing_count = 0
+            if existing_result and existing_result.get("documents"):
+                documents = existing_result.get("documents", [[]])
+                if documents and len(documents) > 0:
+                    existing_count = len(documents[0])
 
-                if any(q.lower().strip() == question.lower().strip() for q in found):
-                    print("✅ Question already exists. Skipping.")
+            print(
+                f"📊 Category '{category}' has {existing_count} existing items (min required: {min_count})")
+
+            # Skip if already have enough items
+            if existing_count >= min_count:
+                print(
+                    f"✅ Category '{category}' already has sufficient items ({existing_count} >= {min_count}). Skipping.")
+                continue
+
+            # Get existing questions for duplicate checking
+            existing_questions = []
+            if existing_result and existing_result.get("documents"):
+                documents = existing_result.get("documents", [[]])
+                if documents and len(documents) > 0:
+                    existing_questions = [q.lower().strip()
+                                          for q in documents[0]]
+
+            # Process each question in this category
+            added_count = 0
+            for item in category_questions:
+                question = item.get("question")
+                answer = item.get("answer")
+                source = item.get("source")
+
+                # Skip items with missing required fields
+                if not all([question, answer, source, category]):
+                    print(f"⚠️ Skipping item with missing fields: {item}")
                     continue
 
-                collection.add(
-                    documents=[question],
-                    metadatas=[{"sample_answer": answer, "source": source}],
-                    ids=[str(uuid.uuid4())],
-                )
-                print("✅ Question added.")
-            except Exception as e:
-                print(f"❌ Error checking/adding question: {e}")
+                # Check for exact duplicates within category
+                question_normalized = question.lower().strip()
+                if question_normalized in existing_questions:
+                    print(
+                        f"🔄 Question already exists in category '{category}'. Skipping: {question[:50]}...")
+                    continue
+
+                # Add to collection
+                try:
+                    behavioral_qna_collection.add(
+                        documents=[question],
+                        metadatas=[{
+                            "sample_answer": answer,
+                            "source": source,
+                            "category": category
+                        }],
+                        ids=[str(uuid.uuid4())],
+                    )
+                    existing_questions.append(
+                        question_normalized)  # Update local cache
+                    added_count += 1
+                    print(
+                        f"✅ Added question to category '{category}': {question[:50]}...")
+
+                except Exception as e:
+                    print(f"❌ Error adding question: {e}")
+
+            print(
+                f"📝 Added {added_count} new questions to category '{category}'")
+
+        except Exception as e:
+            print(f"❌ Error processing category '{category}': {e}")
 
 
-def save_query_with_questions(search_query: str, questions: List[str], full_qna_data: List[dict]) -> bool:
+def get_qna_by_category(category: str) -> List[dict]:
     """
-    Cache a search query with its generated questions to avoid future LLM calls.
+    Retrieve all behavioral interview Q&A for a specific category.
 
     Args:
-        search_query: The search query string
-        questions: List of question strings only
-        full_qna_data: Complete Q&A data with answers and sources
+        category: The category to filter by
 
     Returns:
-        True if successfully cached, False otherwise
+        List of dicts with keys: question, answer, source, category
     """
     try:
-        # Check if this exact query is already cached
-        existing = query_cache_collection.query(
-            query_texts=[search_query],
-            n_results=1
+        # Query for all items in the specified category
+        result = behavioral_qna_collection.query(
+            query_texts=[category],
+            n_results=4,  # Get all items
+            where={"category": category}
         )
 
-        documents = existing.get("documents")
-        if documents and documents[0] and len(documents[0]) > 0:
-            # Check for exact match
-            existing_doc = documents[0][0]
-            if existing_doc.strip().lower() == search_query.strip().lower():
-                print("🔄 Query already cached. Updating...")
-                # You might want to update or skip based on your needs
-                return False
-
-        # Cache the query with its questions
-        query_cache_collection.add(
-            documents=[search_query],
-            metadatas=[{
-                "questions": json.dumps(questions),
-                "full_data": json.dumps(full_qna_data),
-                "question_count": len(questions),
-                # Using UUID as timestamp alternative
-                "cached_at": str(uuid.uuid4())
-            }],
-            ids=[str(uuid.uuid4())]
-        )
-
-        print(f"💾 Successfully cached query with {len(questions)} questions")
-        return True
-
-    except Exception as e:
-        print(f"❌ Error caching query: {e}")
-        return False
-
-
-def get_cached_questions_by_query(search_query: str) -> Optional[List[str]]:
-    """
-    Retrieve cached questions for a given search query.
-
-    Args:
-        search_query: The search query to look up
-
-    Returns:
-        List of questions if found, None if not cached
-    """
-    try:
-        # Search for similar queries (you can adjust similarity threshold)
-        result = query_cache_collection.query(
-            query_texts=[search_query],
-            n_results=3  # Get top 3 similar queries
-        )
-
-        documents = result.get("documents")
-        metadatas = result.get("metadatas")
-
-        if not documents or not documents[0] or not metadatas or not metadatas[0]:
-            return None
-
-        # Check for exact or very similar matches
-        for i, doc in enumerate(documents[0]):
-            if doc.strip().lower() == search_query.strip().lower():
-                # Exact match found
-                metadata = metadatas[0][i]
-                questions_json = metadata.get("questions")
-
-                if questions_json and isinstance(questions_json, str):
-                    try:
-                        questions = json.loads(questions_json)
-                        print(
-                            f"🎯 Found exact match with {len(questions)} cached questions")
-                        return questions
-                    except json.JSONDecodeError:
-                        print("❌ Error parsing cached questions JSON")
-                        continue
-
-        # If no exact match, you could implement similarity-based matching here
-        # For now, we'll be strict and only return exact matches
-        return None
-
-    except Exception as e:
-        print(f"❌ Error retrieving cached questions: {e}")
-        return None
-
-
-def get_top_matches(query: str, n_results: int = 3) -> List[Any]:
-    """
-    Search ChromaDB for top N similar questions.
-    Returns a list of metadata dicts.
-    """
-    try:
-        result = collection.query(query_texts=[query], n_results=n_results)
-        metadatas = result.get("metadatas")
-
-        if not metadatas or not isinstance(metadatas, list) or not metadatas[0]:
+        # Handle case where result is None
+        if result is None:
+            print(
+                f"❌ No results returned from collection query for category '{category}'")
             return []
 
-        return metadatas[0]  # list[dict]
+        # Extract metadatas and documents with proper None handling
+        metadatas_raw = result.get("metadatas", [[]])
+        documents_raw = result.get("documents", [[]])
+
+        metadatas = metadatas_raw[0] if metadatas_raw and len(
+            metadatas_raw) > 0 else []
+        documents = documents_raw[0] if documents_raw and len(
+            documents_raw) > 0 else []
+
+        # Ensure both lists have the same length to avoid index errors
+        if len(metadatas) != len(documents):
+            print(
+                f"⚠️ Warning: Metadata count ({len(metadatas)}) doesn't match document count ({len(documents)})")
+            min_length = min(len(metadatas), len(documents))
+            metadatas = metadatas[:min_length]
+            documents = documents[:min_length]
+
+        # Build result list
+        matching_questions = []
+        for doc, meta in zip(documents, metadatas):
+            # Ensure meta is not None and has the required fields
+            if meta and meta.get("category") == category:
+                matching_questions.append({
+                    "question": doc,
+                    "answer": meta.get("sample_answer"),
+                    "source": meta.get("source"),
+                    "category": meta.get("category")
+                })
+
+        print(
+            f"🎯 Found {len(matching_questions)} questions in category '{category}'")
+        return matching_questions
 
     except Exception as e:
-        print(f"❌ Error during search: {e}")
+        print(f"❌ Error fetching questions for category '{category}': {e}")
         return []
-
-
-def clear_query_cache() -> bool:
-    """
-    Utility function to clear the query cache collection.
-    Use with caution!
-    """
-    try:
-        query_cache_collection.delete()
-        print("🗑️ Query cache cleared successfully")
-        return True
-    except Exception as e:
-        print(f"❌ Error clearing query cache: {e}")
-        return False
-
-
-def get_cache_stats() -> dict:
-    """
-    Get statistics about the query cache.
-    """
-    try:
-        # Get count of cached queries
-        result = query_cache_collection.get()
-
-        if result and result.get("documents"):
-            documents = result["documents"]
-            if documents is not None:
-                cached_queries_count = len(documents)
-            else:
-                cached_queries_count = 0
-
-            # Calculate total questions cached
-            total_questions = 0
-            metadatas = result.get("metadatas", [])
-
-            if metadatas:
-                for metadata in metadatas:
-                    if metadata and isinstance(metadata, dict):
-                        question_count = metadata.get("question_count", 0)
-                        if isinstance(question_count, (int, float)):
-                            total_questions += int(question_count)
-
-            return {
-                "cached_queries": cached_queries_count,
-                "total_cached_questions": total_questions,
-                "average_questions_per_query": total_questions / cached_queries_count if cached_queries_count > 0 else 0
-            }
-        else:
-            return {
-                "cached_queries": 0,
-                "total_cached_questions": 0,
-                "average_questions_per_query": 0
-            }
-
-    except Exception as e:
-        print(f"❌ Error getting cache stats: {e}")
-        return {
-            "cached_queries": 0,
-            "total_cached_questions": 0,
-            "average_questions_per_query": 0,
-            "error": str(e)
-        }

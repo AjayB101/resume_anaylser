@@ -54,6 +54,10 @@ export default function InterviewQAGenerator() {
   };
 
   const handleSubmitAnswers = async () => {
+    if(answers.length !== questions.length) {
+      alert("Please answer all questions before submitting.");
+      return;
+    }
     if (!sessionId) {
       alert("Session expired. Please generate questions again.");
       return;
