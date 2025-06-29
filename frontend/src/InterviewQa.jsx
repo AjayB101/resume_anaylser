@@ -54,7 +54,9 @@ export default function InterviewQAGenerator() {
   };
 
   const handleSubmitAnswers = async () => {
-    if(answers.length !== questions.length) {
+const keyss = Object.keys(answers);
+
+    if(keyss.length !== questions.length) {
       alert("Please answer all questions before submitting.");
       return;
     }
