@@ -1,14 +1,25 @@
-from typing import Any, List, TypedDict
+from typing import Any, List, Optional, TypedDict
 
 from pydantic import BaseModel, Field
 
 
 class ResumeScore(BaseModel):
-    clarity: int
-    relevance: int
-    structure: int
-    experience: int
-    feedback: List[str]
+    is_valid_resume: bool = Field(
+        description="Whether the document is a valid resume/CV")
+    is_valid_job_description: bool = Field(
+        description="Whether the job description is valid and relevant")
+    validation_message: Optional[str] = Field(
+        description="Message explaining why document is invalid (if applicable)")
+    clarity: Optional[int] = Field(
+        description="Clarity score 0-100 (only if valid resume)")
+    relevance: Optional[int] = Field(
+        description="Relevance score 0-100 (only if valid resume)")
+    structure: Optional[int] = Field(
+        description="Structure score 0-100 (only if valid resume)")
+    experience: Optional[int] = Field(
+        description="Years of experience (only if valid resume)")
+    feedback: Optional[List[str]] = Field(
+        description="Improvement feedback (only if valid resume)")
 
 
 class BehavioralQuestion(BaseModel):

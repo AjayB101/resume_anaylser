@@ -52,11 +52,25 @@ def resume_analyse(resume_txt: str, job_description: str):
                                ()})
 
         chain = prompt | llm | parser
-        res = chain.invoke({
+        result = chain.invoke({
             "resume_text": resume_txt,
             "job_description": job_description
         })
-        return success_response(res.dict())
+        if not result.is_valid_resume and not result.is_valid_job_description:
+            return error_response(result.validation_message or "The provided resume and job description is not valid.")
+        elif not result.is_valid_resume:
+            return error_response(result.validation_message or "The uploaded document is not a valid resume.")
+        elif not result.is_valid_job_description:
+            return error_response(result.validation_message or "The provided job description is not valid.")
+
+        # Return success with resume analysis data
+        return success_response({
+            "clarity": result.clarity,
+            "relevance": result.relevance,
+            "structure": result.structure,
+            "experience": result.experience,
+            "feedback": result.feedback
+        })
 
     except Exception as e:
         return error_response(str(e))

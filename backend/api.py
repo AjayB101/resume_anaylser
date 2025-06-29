@@ -52,6 +52,18 @@ async def run_pipeline(
         }
 
         result = behavioral_graph.invoke(state)
+        resume_analysis = result.get("resume_analysis", {})
+
+        if not resume_analysis.get("success"):
+            # Clean up temp directory on validation/analysis failure
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": resume_analysis.get(
+                    "message", "Invalid resume or analysis failed")}
+            )
 
         # Store ALL necessary data for the second API call
         session_store[session_id] = {

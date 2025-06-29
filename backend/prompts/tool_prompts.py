@@ -1,34 +1,84 @@
 class ToolPrompts:
     resume_analyzer_prompt = """
-    You are an expert career coach evaluating resumes for job fit.
+You are an expert career coach and a meticulous document validator. Your job is to validate both the candidate's resume and the provided job description before performing an analysis.
 
-    Instructions:
-    - Score the resume in three categories: clarity, relevance to the job description, and structure.
-    - Give numeric scores out of 100 for each category.
-    - Count the number of years of relevant experience.
-    - Provide 2-3 specific improvement suggestions.
+STEP 1: VALIDATE THE RESUME
+First, carefully analyze the 'Input Document' to determine if it is a valid resume/CV. Look for:
+- Personal/contact information (name, email, phone)
+- Professional experience or work history
+- Education background
+- A skills section
+- Standard resume structure and professional language.
 
-    Input Resume:
-    {resume_text}
+If the document is NOT a valid resume (e.g., a random article, book chapter, test document), you must stop and format the output for an invalid resume.
 
-    Job Description:
-    {job_description}
+STEP 2: VALIDATE THE JOB DESCRIPTION
+If the resume is valid, now analyze the 'Job Description' text. A valid job description should contain:
+- A job title
+- Company information or context
+- A list of responsibilities or duties
+- A list of qualifications, skills, or requirements.
 
-    instructions on how the output would be
-    {format_instructions}
-    
-    Your response must be in the following JSON format:
+If the text is NOT a valid job description, you must stop and format the output for an invalid job description.
 
+STEP 3: FULL ANALYSIS (ONLY if both are valid)
+If AND ONLY IF the document is a valid resume AND the text is a valid job description, then proceed to the full analysis:
+- Set is_valid_resume: true
+- Set is_valid_job_description: true
+- Score the resume for clarity, relevance to the job description, and structure (0-100).
+- Count the years of relevant experience mentioned in the resume.
+- Provide 2-3 specific, actionable improvement suggestions.
+
+Input Document:
+{resume_text}
+
+Job Description:
+{job_description}
+
+Format Instructions:
+{format_instructions}
+
+Your response MUST be in the following JSON format. Choose the format that matches your validation outcome:
+
+- If the resume is INVALID:
 {{
-  "clarity": int,                     // Clarity score from 0 to 100
-  "relevance": int,                  // Relevance to job description
-  "structure": int,                  // Resume formatting quality
-  "experience": int,                 // Years of relevant experience
-  "feedback": [str, str, ...]        // List of 2–3 short improvement tips
+  "is_valid_resume": false,
+  "is_valid_job_description": true,
+  "validation_message": "This document does not appear to be a valid resume. Please upload a correctly formatted resume/CV.",
+  "clarity": null,
+  "relevance": null,
+  "structure": null,
+  "experience": null,
+  "feedback": null
 }}
-ONLY return the above JSON object with correct keys and values. Do not include anything else.
 
-    """
+- If the resume is VALID, but the job description is INVALID:
+{{
+  "is_valid_resume": true,
+  "is_valid_job_description": false,
+  "validation_message": "The provided text does not appear to be a valid job description. Please provide a complete job description with responsibilities and requirements.",
+  "clarity": null,
+  "relevance": null,
+  "structure": null,
+  "experience": null,
+  "feedback": null
+}}
+
+- If BOTH the resume AND job description are VALID:
+{{
+  "is_valid_resume": true,
+  "is_valid_job_description": true,
+  "validation_message": null,
+  "clarity": <int>,
+  "relevance": <int>,
+  "structure": <int>,
+  "experience": <int>,
+  "feedback": ["<string>", "<string>", ...]
+}}
+
+IMPORTANT: Be strict. Do not analyze invalid documents. The primary goal is accuracy no preamble or explainations.
+"""
+
     serach_query_prompt = """
 You are an expert at creating search queries for finding relevant behavioral interview questions.
 
