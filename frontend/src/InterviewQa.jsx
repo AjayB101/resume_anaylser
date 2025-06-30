@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function InterviewQAGenerator() {
   const [file, setFile] = useState(null);
@@ -38,8 +39,9 @@ export default function InterviewQAGenerator() {
         setSessionId(data.session_id);
         setStep(2);
         setDashboardData(null);
+        toast.success("Questions generated successfully! Please answer them below.");
       } else {
-        alert(data.message || "Error generating questions");
+        toast.error(data.message || "Error generating questions");
       }
     } catch (err) {
       console.error("Error:", err);
@@ -57,17 +59,17 @@ export default function InterviewQAGenerator() {
 const keyss = Object.keys(answers);
 
     if(keyss.length !== questions.length) {
-      alert("Please answer all questions before submitting.");
+      toast.error("Please answer all questions before submitting.");
       return;
     }
     if (!sessionId) {
-      alert("Session expired. Please generate questions again.");
+      toast.error("Session expired. Please generate questions again.");
       return;
     }
 
     const hasAnswers = Object.values(answers).some(answer => answer.trim());
     if (!hasAnswers) {
-      alert("Please provide at least one answer before submitting.");
+      toast.error("Please provide at least one answer before submitting.");
       return;
     }
 
@@ -93,12 +95,13 @@ const keyss = Object.keys(answers);
       if (data.success) {
         setDashboardData(data.data || {});
         setStep(3);
+        toast.success("Answers submitted successfully! View your dashboard below.");
       } else {
-        alert(data.message || "Error evaluating answers");
+        toast.error(data.message || "Error evaluating answers");
       }
     } catch (err) {
       console.error("Error:", err);
-      alert("Error submitting answers. Please try again.");
+      toast.error("Error submitting answers. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -173,7 +176,10 @@ const keyss = Object.keys(answers);
   );
 
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-6">
+<Toaster position="top-right" reverseOrder={false} />
+
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -340,67 +346,73 @@ const keyss = Object.keys(answers);
             )}
 
             {/* Score Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Resume Analysis Scores */}
-              {dashboardData.resume_analysis && (
-                <>
-                  <ScoreCard 
-                    title="Resume Clarity" 
-                    score={dashboardData.resume_analysis.clarity} 
-                    icon="📝" 
-                    delay={100}
-                  />
-                  <ScoreCard 
-                    title="Relevance" 
-                    score={dashboardData.resume_analysis.relevance} 
-                    icon="🎯" 
-                    delay={200}
-                  />
-                  <ScoreCard 
-                    title="Structure" 
-                    score={dashboardData.resume_analysis.structure} 
-                    icon="🏗️" 
-                    delay={300}
-                  />
-                  <ScoreCard 
-                    title={`Experience (${dashboardData.resume_analysis.experience} years)`} 
-                    score={Math.min(dashboardData.resume_analysis.experience * 20, 100)} 
-                    icon="⭐" 
-                    delay={400}
-                  />
-                </>
-              )}
+           <div>
+  {/* Resume Analysis Section */}
+  {dashboardData.resume_analysis && (
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Resume Analysis</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <ScoreCard 
+          title="Resume Clarity" 
+          score={dashboardData.resume_analysis.clarity} 
+          icon="📝" 
+          delay={100}
+        />
+        <ScoreCard 
+          title="Relevance" 
+          score={dashboardData.resume_analysis.relevance} 
+          icon="🎯" 
+          delay={200}
+        />
+        <ScoreCard 
+          title="Structure" 
+          score={dashboardData.resume_analysis.structure} 
+          icon="🏗️" 
+          delay={300}
+        />
+        <ScoreCard 
+          title={`Experience (${dashboardData.resume_analysis.experience} years)`} 
+          score={Math.min(dashboardData.resume_analysis.experience * 20, 100)} 
+          icon="⭐" 
+          delay={400}
+        />
+      </div>
+    </div>
+  )}
 
-              {/* Mock Interview Scores */}
-              {dashboardData.mock_response && (
-                <>
-                  <ScoreCard 
-                    title="Interview Tone" 
-                    score={dashboardData.mock_response.tone} 
-                    icon="🗣️" 
-                    delay={500}
-                  />
-                  <ScoreCard 
-                    title="Confidence" 
-                    score={dashboardData.mock_response.confidence} 
-                    icon="💪" 
-                    delay={600}
-                  />
-                  <ScoreCard 
-                    title="Answer Relevance" 
-                    score={dashboardData.mock_response.relevance} 
-                    icon="🎯" 
-                    delay={700}
-                  />
-                  <ScoreCard 
-                    title="Overall Score" 
-                    score={dashboardData.mock_response.total_marks} 
-                    icon="🏆" 
-                    delay={800}
-                  />
-                </>
-              )}
-            </div>
+  {/* Mock Interview Results Section */}
+  {dashboardData.mock_response && (
+    <div className="mb-8">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Mock Interview Results</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <ScoreCard 
+          title="Interview Tone" 
+          score={dashboardData.mock_response.tone} 
+          icon="🗣️" 
+          delay={500}
+        />
+        <ScoreCard 
+          title="Confidence" 
+          score={dashboardData.mock_response.confidence} 
+          icon="💪" 
+          delay={600}
+        />
+        <ScoreCard 
+          title="Answer Relevance" 
+          score={dashboardData.mock_response.relevance} 
+          icon="🎯" 
+          delay={700}
+        />
+        <ScoreCard 
+          title="Overall Score" 
+          score={dashboardData.mock_response.total_marks} 
+          icon="🏆" 
+          delay={800}
+        />
+      </div>
+    </div>
+  )}
+</div>  
 
             {/* Feedback Sections */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

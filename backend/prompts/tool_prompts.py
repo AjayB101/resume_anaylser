@@ -114,6 +114,7 @@ Search Query:"""
     {query}
     no preamble or Explaination
     """
+
     mock_interview_prompt = """
 You are an expert interview evaluator. Your task is to analyze the candidate's resume and their answers to behavioral questions and provide a structured evaluation in JSON format.
 
@@ -128,32 +129,31 @@ You are an expert interview evaluator. Your task is to analyze the candidate's r
 
 1.  **Tone:** Evaluate the candidate's tone from their answers. Is it professional, enthusiastic, or passive? Assign a score from 0 (poor) to 100 (excellent).
 2.  **Confidence:** Evaluate the candidate's confidence level. Do they sound sure of their answers and experiences? Assign a score from 0 (not confident) to 100 (very confident).
-3.  **Relevance:** Evaluate the relevance of the candidate's answers to the questions asked. Are the answers on-topic and concise? Assign a score from 0 (irrelevant) to 100 (highly relevant).
+3.  **Relevance:** Evaluate the relevance of the candidate's answers to the questions asked. Are the answers on-topic and meaningful? Assign a score from 0 (irrelevant) to 100 (highly relevant).
+    - If the answer is clearly invalid, placeholder-like (e.g., 'x', 'asdf'), or unrelated to the question, assign a **relevance score of 0**.
+    - Invalid answers should also receive very low tone and confidence scores.
 4.  **Total Marks:** Calculate the average of the tone, confidence, and relevance scores.
 5.  **Feedback:** Based on your evaluation, provide a list of 2-3 clear, actionable feedback tips for the candidate to help them improve.
 
 ---
 **Output Instructions:**
 
-example output format:
+Return the final result strictly in the following JSON format:
+
 ```json
-            {{
-                "tone": 85,
-                "confidence": 90,
-                "relevance": 88,
-                "total_marks": 87,
-                "feedback": [
-                    "Maintain strong eye contact throughout the interview.",
-                    "Provide more specific examples to support your claims.",
-                    "Work on structuring your answers more clearly."
-                ]
-            }}
-            ```
-
-You must provide a JSON response based on the evaluation criteria above. Follow the format instructions below precisely. Do not include any preamble, explanation, or any text outside of the final JSON object.
-
-{format_instructions}
+{{
+    "tone": <int>,
+    "confidence": <int>,
+    "relevance": <int>,
+    "total_marks": <float>,
+    "feedback": [
+        "<feedback 1>",
+        "<feedback 2>",
+        "<feedback 3>"
+    ]
+}}
 """
+
     PREDICTOR_PROMPT = """
 You are an AI interview coach.
 
