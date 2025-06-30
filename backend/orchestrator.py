@@ -96,7 +96,6 @@ def create_mock_evaluation_graph():
 
     builder.add_node(MOCK_EVALUATOR_NODE, mock_evaluator_node)
     builder.add_edge(START, MOCK_EVALUATOR_NODE)
-    builder.add_edge(START, MOCK_EVALUATOR_NODE)
     builder.add_edge(MOCK_EVALUATOR_NODE, OUT_COME_NODE)
     builder.add_edge(OUT_COME_NODE, GAP_FIXER_NODE)
     builder.add_edge(GAP_FIXER_NODE, END)

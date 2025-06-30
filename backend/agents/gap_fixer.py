@@ -45,7 +45,6 @@ def gap_fixer_agent(resume_dict: dict, evaluation_scores: dict, success_likeliho
         links = []
         for query in querys[:3]:
             search_res = fire_crawl.search(query, n_res=1)
-            print(search_res)
             links .append(search_res.data[0]["url"])
         final_res = {
             "summary": improvemet_plan["overall_summary"],
